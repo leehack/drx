@@ -111,8 +111,8 @@ void main() {
             .single;
         expect(compileCall.arguments[2], '--packages');
         expect(
-          compileCall.arguments[3],
-          endsWith(p.join('.dart_tool', 'package_config.json')),
+          _normalizedPath(compileCall.arguments[3]),
+          endsWith('.dart_tool/package_config.json'),
         );
         expect(
           compileCall.arguments.last,
@@ -303,6 +303,8 @@ Future<void> main(List<String> args) async => launchExecutable();
     });
   });
 }
+
+String _normalizedPath(String value) => value.replaceAll('\\', '/');
 
 Future<void> _writePackageFixture(
   Directory sandbox, {
