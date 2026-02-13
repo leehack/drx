@@ -193,6 +193,9 @@ The repository includes ready workflows for CI and binary release publishing:
 - `.github/workflows/ci.yml`
 - `.github/workflows/release-binaries.yml`
 
+`release-binaries.yml` runs on pushed tags (`v*`) and also supports manual
+dispatch with a required `tag` input.
+
 ## Development
 
 ```bash
