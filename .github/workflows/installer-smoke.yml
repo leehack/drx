@@ -20,7 +20,7 @@ jobs:
           - label: linux-arm64
             runner: ubuntu-24.04-arm
           - label: macos-x64
-            runner: macos-13
+            runner: macos-15-intel
           - label: macos-arm64
             runner: macos-latest
           - label: windows-x64
@@ -114,12 +114,44 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $port = 18080
+          $port = Get-Random -Minimum 18080 -Maximum 19000
           $serveRoot = Join-Path $env:RUNNER_TEMP "serve"
           $stdoutLog = Join-Path $env:RUNNER_TEMP "http-out.log"
           $stderrLog = Join-Path $env:RUNNER_TEMP "http-err.log"
-          $server = Start-Process -FilePath python -ArgumentList "-m","http.server",$port,"--directory",$serveRoot -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
-          Start-Sleep -Seconds 2
+
+          $pythonCmd = if (Get-Command python -ErrorAction SilentlyContinue) {
+            "python"
+          } elseif (Get-Command py -ErrorAction SilentlyContinue) {
+            "py"
+          } else {
+            throw "Python is required to run installer smoke tests on Windows runners."
+          }
+
+          $pythonArgs = if ($pythonCmd -eq "py") {
+            @("-3", "-m", "http.server", $port, "--directory", $serveRoot)
+          } else {
+            @("-m", "http.server", $port, "--directory", $serveRoot)
+          }
+
+          $server = Start-Process -FilePath $pythonCmd -ArgumentList $pythonArgs -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
+
+          $ready = $false
+          for ($i = 0; $i -lt 30; $i++) {
+            try {
+              Invoke-WebRequest -Uri "http://127.0.0.1:$port/tool/install.ps1" -UseBasicParsing -TimeoutSec 2 | Out-Null
+              $ready = $true
+              break
+            }
+            catch {
+              Start-Sleep -Seconds 1
+            }
+          }
+          if (-not $ready) {
+            if (Test-Path $stderrLog) {
+              Get-Content $stderrLog
+            }
+            throw "Local HTTP server did not become ready on port $port."
+          }
 
           try {
             $env:DRX_REPO = "example/drx"

@@ -19,7 +19,7 @@ jobs:
           - label: linux-arm64
             runner: ubuntu-24.04-arm
           - label: macos-x64
-            runner: macos-13
+            runner: macos-15-intel
           - label: macos-arm64
             runner: macos-latest
           - label: windows-x64
