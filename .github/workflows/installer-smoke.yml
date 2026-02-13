@@ -1,0 +1,139 @@
+name: Installer Smoke
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  one-liner:
+    name: one-liner (${{ matrix.label }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: linux-x64
+            runner: ubuntu-latest
+          - label: linux-arm64
+            runner: ubuntu-24.04-arm
+          - label: macos-x64
+            runner: macos-13
+          - label: macos-arm64
+            runner: macos-latest
+          - label: windows-x64
+            runner: windows-latest
+          - label: windows-arm64
+            runner: windows-11-arm
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Build local payload (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          os_raw="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          case "$os_raw" in
+            linux*) os="linux" ;;
+            darwin*) os="macos" ;;
+            *) echo "Unsupported OS: $os_raw"; exit 1 ;;
+          esac
+          arch_raw="$(uname -m | tr '[:upper:]' '[:lower:]')"
+          case "$arch_raw" in
+            x86_64|amd64) arch="x64" ;;
+            arm64|aarch64) arch="arm64" ;;
+            *) echo "Unsupported architecture: $arch_raw"; exit 1 ;;
+          esac
+          asset="drx-${os}-${arch}"
+
+          serve_root="$RUNNER_TEMP/serve"
+          mkdir -p "$serve_root/download" "$serve_root/tool"
+
+          dart compile exe bin/drx.dart -o "$serve_root/download/$asset"
+          shasum -a 256 "$serve_root/download/$asset" > "$serve_root/download/$asset.sha256"
+
+          cp tool/install.sh "$serve_root/tool/install.sh"
+
+      - name: Build local payload (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $archRaw = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()
+          switch ($archRaw) {
+            'x64' { $arch = 'x64' }
+            'arm64' { $arch = 'arm64' }
+            default { throw "Unsupported architecture: $archRaw" }
+          }
+          $asset = "drx-windows-$arch.exe"
+
+          $serveRoot = Join-Path $env:RUNNER_TEMP "serve"
+          New-Item -ItemType Directory -Path (Join-Path $serveRoot "download") -Force | Out-Null
+          New-Item -ItemType Directory -Path (Join-Path $serveRoot "tool") -Force | Out-Null
+
+          $assetPath = Join-Path $serveRoot "download/$asset"
+          dart compile exe bin/drx.dart -o $assetPath
+
+          $hash = (Get-FileHash -Algorithm SHA256 $assetPath).Hash.ToLower()
+          "$hash  $asset" | Out-File -Encoding ascii (Join-Path $serveRoot "download/$asset.sha256")
+
+          Copy-Item tool/install.ps1 (Join-Path $serveRoot "tool/install.ps1")
+
+      - name: Test one-liner install (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          port=18080
+          serve_root="$RUNNER_TEMP/serve"
+
+          python3 -m http.server "$port" --directory "$serve_root" >"$RUNNER_TEMP/http.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT INT TERM
+          sleep 2
+
+          curl -fsSL "http://127.0.0.1:${port}/tool/install.sh" | \
+            DRX_REPO=example/drx \
+            DRX_DOWNLOAD_BASE="http://127.0.0.1:${port}/download" \
+            DRX_INSTALL_DIR="$RUNNER_TEMP/bin" \
+            sh
+
+          "$RUNNER_TEMP/bin/drx" --version
+          "$RUNNER_TEMP/bin/drx" cache list --json
+
+      - name: Test one-liner install (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $port = 18080
+          $serveRoot = Join-Path $env:RUNNER_TEMP "serve"
+          $stdoutLog = Join-Path $env:RUNNER_TEMP "http-out.log"
+          $stderrLog = Join-Path $env:RUNNER_TEMP "http-err.log"
+          $server = Start-Process -FilePath python -ArgumentList "-m","http.server",$port,"--directory",$serveRoot -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
+          Start-Sleep -Seconds 2
+
+          try {
+            $env:DRX_REPO = "example/drx"
+            $env:DRX_DOWNLOAD_BASE = "http://127.0.0.1:$port/download"
+            $env:DRX_INSTALL_DIR = Join-Path $env:RUNNER_TEMP "bin"
+
+            Invoke-WebRequest -Uri "http://127.0.0.1:$port/tool/install.ps1" -UseBasicParsing | Invoke-Expression
+
+            $drxExe = Join-Path (Join-Path $env:RUNNER_TEMP "bin") "drx.exe"
+            & $drxExe --version
+            & $drxExe cache list --json
+          }
+          finally {
+            if (-not $server.HasExited) {
+              Stop-Process -Id $server.Id -Force
+            }
+          }

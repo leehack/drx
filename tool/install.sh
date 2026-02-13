@@ -4,6 +4,7 @@ set -eu
 REPO="${DRX_REPO:-}"
 VERSION="latest"
 INSTALL_DIR="${DRX_INSTALL_DIR:-$HOME/.local/bin}"
+DOWNLOAD_BASE="${DRX_DOWNLOAD_BASE:-}"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -60,7 +61,10 @@ esac
 
 ASSET="drx-${OS}-${ARCH}"
 
-if [ "$VERSION" = "latest" ]; then
+if [ -n "$DOWNLOAD_BASE" ]; then
+  DOWNLOAD_BASE="${DOWNLOAD_BASE%/}"
+  URL="${DOWNLOAD_BASE}/${ASSET}"
+elif [ "$VERSION" = "latest" ]; then
   URL="https://github.com/${REPO}/releases/latest/download/${ASSET}"
 else
   URL="https://github.com/${REPO}/releases/download/${VERSION}/${ASSET}"

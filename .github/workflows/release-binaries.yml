@@ -16,11 +16,24 @@ permissions:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    name: build (${{ matrix.label }})
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - label: linux-x64
+            runner: ubuntu-latest
+          - label: linux-arm64
+            runner: ubuntu-24.04-arm
+          - label: macos-x64
+            runner: macos-13
+          - label: macos-arm64
+            runner: macos-latest
+          - label: windows-x64
+            runner: windows-latest
+          - label: windows-arm64
+            runner: windows-11-arm
 
     steps:
       - uses: actions/checkout@v4
@@ -67,7 +80,7 @@ jobs:
       - name: Upload platform artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: drx-${{ runner.os }}
+          name: drx-${{ matrix.label }}
           path: build/*
 
   publish-release:
@@ -93,4 +106,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          overwrite_files: true
           files: dist/*

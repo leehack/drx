@@ -29,26 +29,28 @@ Examples:
 ```bash
 drx melos -- --version
 drx mason_cli:mason -- --help
-drx --from pub:very_good_cli@0.20.0 very_good -- --help
+drx --from pub:very_good_cli very_good -- --help
 drx --from gh:cli/cli@v2.70.0 gh -- version
 drx --from gh:BurntSushi/ripgrep rg -- --version
-drx --from gh:sharkdp/fd fd -- --version
 drx --from gh:junegunn/fzf fzf -- --version
-drx --from gh:sharkdp/bat bat -- --version
-drx --from gh:dandavison/delta delta -- --version
-drx --from gh:jqlang/jq jq -- --version
 drx --from gh:charmbracelet/gum gum -- --version
+drx --allow-unsigned --from gh:sharkdp/fd fd -- --version
+drx --allow-unsigned --from gh:sharkdp/bat bat -- --version
+drx --allow-unsigned --from gh:dandavison/delta delta -- --version
 drx versions melos --limit 5
 drx versions gh:cli/cli --limit 10
 drx cache list
 drx cache prune --max-age-days 30 --max-size-mb 2048
 ```
 
+Note: some repositories do not publish checksums. Those require
+`--allow-unsigned` as shown above.
+
 ## Cross-Platform Support
 
-- macOS: supported
-- Linux: supported by implementation and CI workflow
-- Windows: supported by implementation and CI workflow
+- Linux: `x64`, `arm64`
+- macOS: `x64` (Intel), `arm64` (Apple Silicon)
+- Windows: `x64`, `arm64`
 
 `drx` handles Windows executable resolution (`.exe`, `.cmd`, `.bat`) and
 Unix executable permissions for downloaded binaries.
@@ -191,10 +193,14 @@ installing binaries.
 The repository includes ready workflows for CI and binary release publishing:
 
 - `.github/workflows/ci.yml`
+- `.github/workflows/installer-smoke.yml`
 - `.github/workflows/release-binaries.yml`
 
 `release-binaries.yml` runs on pushed tags (`v*`) and also supports manual
 dispatch with a required `tag` input.
+
+`installer-smoke.yml` validates one-liner install scripts on Linux/macOS/Windows
+across `x64` and `arm64` runners.
 
 ## Development
 

@@ -14,6 +14,8 @@
 - Add `--json` output mode for cache and versions commands.
 - Support global utility flags before command verbs (for example `--json versions`).
 - Add GH version-list fallback to repository tags when releases are absent.
+- Add one-liner installer smoke tests across Linux/macOS/Windows.
+- Expand binary build matrix to include Intel macOS and ARM Linux/Windows.
 
 ## 0.1.0
 

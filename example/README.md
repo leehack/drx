@@ -16,10 +16,12 @@ drx mason_cli:mason -- --help
 Use `drx` with explicit sources:
 
 ```sh
-drx --from pub:very_good_cli@0.28.0 very_good -- --help
+drx --from pub:very_good_cli very_good -- --help
 drx --from gh:cli/cli@v2.70.0 gh -- version
 drx --from gh:BurntSushi/ripgrep rg -- --version
-drx --from gh:sharkdp/fd fd -- --version
+drx --from gh:junegunn/fzf fzf -- --version
+drx --from gh:charmbracelet/gum gum -- --version
+drx --allow-unsigned --from gh:sharkdp/fd fd -- --version
 ```
 
 Use runtime controls for pub tools:

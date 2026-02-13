@@ -83,8 +83,11 @@ assets match platform/arch naming and include checksums.
 Examples:
 
 - `my_tool-linux-x64.tar.gz`
+- `my_tool-linux-arm64.tar.gz`
+- `my_tool-macos-x64.tar.gz`
 - `my_tool-macos-arm64.tar.gz`
 - `my_tool-windows-x64.exe`
+- `my_tool-windows-arm64.exe`
 
 ### Supported formats in drx
 
@@ -118,11 +121,11 @@ Real-world examples:
 ```bash
 drx --from gh:cli/cli gh -- version
 drx --from gh:BurntSushi/ripgrep rg -- --version
-drx --from gh:sharkdp/fd fd -- --version
-drx --from gh:sharkdp/bat bat -- --version
-drx --from gh:dandavison/delta delta -- --version
-drx --from gh:jqlang/jq jq -- --version
+drx --from gh:junegunn/fzf fzf -- --version
 drx --from gh:charmbracelet/gum gum -- --version
+drx --allow-unsigned --from gh:sharkdp/fd fd -- --version
+drx --allow-unsigned --from gh:sharkdp/bat bat -- --version
+drx --allow-unsigned --from gh:dandavison/delta delta -- --version
 ```
 
 ### Security behavior

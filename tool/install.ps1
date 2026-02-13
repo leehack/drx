@@ -18,8 +18,12 @@ switch ($arch) {
 }
 
 $asset = "drx-windows-$archToken.exe"
+$downloadBase = $env:DRX_DOWNLOAD_BASE
 
-if ($Version -eq "latest") {
+if ($downloadBase) {
+  $downloadBase = $downloadBase.TrimEnd('/')
+  $url = "$downloadBase/$asset"
+} elseif ($Version -eq "latest") {
   $url = "https://github.com/$Repository/releases/latest/download/$asset"
 } else {
   $url = "https://github.com/$Repository/releases/download/$Version/$asset"
