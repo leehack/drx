@@ -36,7 +36,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          os="${RUNNER_OS,,}"
+          os="$(printf '%s' "$RUNNER_OS" | tr '[:upper:]' '[:lower:]')"
           arch_raw="$(uname -m)"
           case "$arch_raw" in
             x86_64|amd64) arch="x64" ;;
