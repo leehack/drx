@@ -14,7 +14,7 @@ import 'pub_runner.dart';
 import 'version_lister.dart';
 
 /// Current drx CLI version.
-const String drxVersion = '0.3.0';
+const String drxVersion = '0.3.1';
 
 /// Command engine that coordinates parsing, resolution, and execution.
 final class DrxEngine {

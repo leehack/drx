@@ -1,6 +1,6 @@
 name: drx
 description: Run Dart tools and GitHub release binaries like npx/uvx.
-version: 0.3.0
+version: 0.3.1
 homepage: https://github.com/leehack/drx
 repository: https://github.com/leehack/drx
 issue_tracker: https://github.com/leehack/drx/issues

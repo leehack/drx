@@ -1,3 +1,12 @@
+## 0.3.1
+
+- Add installer one-liner smoke tests across Linux/macOS/Windows on `x64` and `arm64`.
+- Expand CI and binary release workflows to include Intel macOS and ARM Linux/Windows.
+- Improve installer workflow reliability with stronger local server startup/readiness checks.
+- Refresh docs/examples with validated signed and unsigned GitHub CLI command examples.
+- Add tag-triggered pub.dev trusted-publishing workflow (`publish-pubdev.yml`) using GitHub OIDC.
+- Refocus README for end users and move maintainer instructions to `doc/maintainers.md`.
+
 ## 0.3.0
 
 - Rename package and CLI naming to `drx`.
@@ -14,8 +23,6 @@
 - Add `--json` output mode for cache and versions commands.
 - Support global utility flags before command verbs (for example `--json versions`).
 - Add GH version-list fallback to repository tags when releases are absent.
-- Add one-liner installer smoke tests across Linux/macOS/Windows.
-- Expand binary build matrix to include Intel macOS and ARM Linux/Windows.
 
 ## 0.1.0
 
