@@ -1,0 +1,90 @@
+name: Release Binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Build binary (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          os="${RUNNER_OS,,}"
+          arch_raw="$(uname -m)"
+          case "$arch_raw" in
+            x86_64|amd64) arch="x64" ;;
+            arm64|aarch64) arch="arm64" ;;
+            *) echo "Unsupported arch: $arch_raw"; exit 1 ;;
+          esac
+          asset="drx-${os}-${arch}"
+          mkdir -p build
+          dart compile exe bin/drx.dart -o "build/${asset}"
+          shasum -a 256 "build/${asset}" > "build/${asset}.sha256"
+
+      - name: Build binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $archRaw = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()
+          switch ($archRaw) {
+            'x64' { $arch = 'x64' }
+            'arm64' { $arch = 'arm64' }
+            default { throw "Unsupported arch: $archRaw" }
+          }
+          $asset = "drx-windows-$arch.exe"
+          New-Item -ItemType Directory -Path build -Force | Out-Null
+          dart compile exe bin/drx.dart -o "build/$asset"
+          $hash = (Get-FileHash -Algorithm SHA256 "build/$asset").Hash.ToLower()
+          "$hash  $asset" | Out-File -Encoding ascii "build/$asset.sha256"
+
+      - name: Upload platform artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: drx-${{ runner.os }}
+          path: build/*
+
+  publish-release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Build SHA256SUMS
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > dist/SHA256SUMS
+          for f in dist/*.sha256; do
+            cat "$f" >> dist/SHA256SUMS
+          done
+
+      - name: Publish GitHub release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*

@@ -1,0 +1,5 @@
+coverage/
+.github/
+tool/check_coverage.dart
+tool/install.sh
+tool/install.ps1
