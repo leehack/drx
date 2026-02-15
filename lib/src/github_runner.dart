@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
+import 'package:yaml/yaml.dart';
 
 import 'cache_paths.dart';
 import 'checksum.dart';
@@ -13,7 +14,7 @@ import 'models.dart';
 import 'platform_info.dart';
 import 'process_executor.dart';
 
-/// Executes tools from GitHub release assets.
+/// Executes tools from GitHub release assets or Dart source.
 final class GitHubRunner {
   GitHubRunner({
     required this.paths,
@@ -29,7 +30,7 @@ final class GitHubRunner {
   final GitHubApi api;
   final ByteFetcher fetcher;
 
-  /// Resolves, verifies, and runs a command from a GitHub release.
+  /// Resolves and runs a command from GitHub.
   Future<int> execute(CommandRequest request) async {
     final ownerRepo = request.source.identifier.split('/');
     if (ownerRepo.length != 2) {
@@ -42,9 +43,36 @@ final class GitHubRunner {
 
     _log(
       request.verbose,
-      'source=gh repo=$owner/$repo tag=${request.source.version ?? 'latest'} command=${request.command}',
+      'source=gh repo=$owner/$repo tag=${request.source.version ?? 'latest'} '
+      'mode=${request.ghMode.name} command=${request.command}',
     );
 
+    switch (request.ghMode) {
+      case GhMode.binary:
+        return _executeBinary(request, owner: owner, repo: repo);
+      case GhMode.source:
+        return _executeSource(request, owner: owner, repo: repo);
+      case GhMode.auto:
+        try {
+          return await _executeBinary(request, owner: owner, repo: repo);
+        } on DrxException catch (error) {
+          if (!_shouldFallbackToSource(error)) {
+            rethrow;
+          }
+          _log(
+            request.verbose,
+            'binary mode unavailable (${error.message}); falling back to source mode',
+          );
+          return _executeSource(request, owner: owner, repo: repo);
+        }
+    }
+  }
+
+  Future<int> _executeBinary(
+    CommandRequest request, {
+    required String owner,
+    required String repo,
+  }) async {
     final release = request.source.version == null
         ? await api.latestRelease(owner, repo)
         : await api.releaseByTag(owner, repo, request.source.version!);
@@ -109,6 +137,207 @@ final class GitHubRunner {
         }
       }
     });
+  }
+
+  Future<int> _executeSource(
+    CommandRequest request, {
+    required String owner,
+    required String repo,
+  }) async {
+    if (request.runtime == RuntimeMode.aot) {
+      throw const DrxException(
+        'AOT is not supported for --gh-mode source. Use --runtime jit or --runtime auto.',
+      );
+    }
+
+    final ref = request.source.version;
+    final gitPath = request.gitPath;
+    final refKey = ref ?? 'default';
+    final gitPathKey = gitPath ?? '.';
+    final parsedCommand = _parseSourceCommand(request.command);
+    final packageName =
+        parsedCommand.package ??
+        await _resolveSourcePackageName(
+          owner: owner,
+          repo: repo,
+          ref: ref,
+          gitPath: gitPath,
+        );
+    final executable = parsedCommand.executable;
+    final lock = paths.lockFileFor(
+      'gh-source:$owner/$repo:$refKey:$gitPathKey:$packageName:${platform.os}:${platform.arch}',
+    );
+
+    return withFileLock(lock, () async {
+      final installDir = request.isolated
+          ? await Directory.systemTemp.createTemp('drx_gh_source_')
+          : paths.ghSourceDir(owner, repo, refKey, gitPathKey, platform);
+
+      if (request.refresh && await installDir.exists() && !request.isolated) {
+        _log(request.verbose, 'refresh requested, clearing ${installDir.path}');
+        await installDir.delete(recursive: true);
+      }
+      await installDir.create(recursive: true);
+
+      final sandbox = Directory(p.join(installDir.path, 'sandbox'));
+      await sandbox.create(recursive: true);
+
+      try {
+        await _writeSourcePubspec(
+          sandbox,
+          packageName: packageName,
+          owner: owner,
+          repo: repo,
+          ref: ref,
+          gitPath: gitPath,
+        );
+
+        final pubGetCode = await processExecutor.run(
+          'dart',
+          const ['pub', 'get'],
+          workingDirectory: sandbox.path,
+          runInShell: platform.isWindows,
+        );
+        if (pubGetCode != 0) {
+          throw DrxException(
+            'Failed to resolve Dart source dependencies for $owner/$repo.',
+          );
+        }
+
+        _log(
+          request.verbose,
+          'executing dart run $packageName:$executable in ${sandbox.path}',
+        );
+        return processExecutor.run(
+          'dart',
+          ['run', '$packageName:$executable', ...request.args],
+          workingDirectory: sandbox.path,
+          runInShell: platform.isWindows,
+        );
+      } finally {
+        if (request.isolated) {
+          await installDir.delete(recursive: true);
+        }
+      }
+    });
+  }
+
+  ({String? package, String executable}) _parseSourceCommand(String command) {
+    final index = command.indexOf(':');
+    if (index < 0) {
+      return (package: null, executable: command);
+    }
+
+    final packageName = command.substring(0, index).trim();
+    final executable = command.substring(index + 1).trim();
+    if (packageName.isEmpty || executable.isEmpty) {
+      throw DrxException(
+        'Invalid source command "$command". Use <executable> or <package:executable>.',
+      );
+    }
+    return (package: packageName, executable: executable);
+  }
+
+  Future<String> _resolveSourcePackageName({
+    required String owner,
+    required String repo,
+    required String? ref,
+    required String? gitPath,
+  }) async {
+    final pubspecUri = _sourcePubspecUri(
+      owner: owner,
+      repo: repo,
+      ref: ref,
+      gitPath: gitPath,
+    );
+    final bytes = await fetcher.fetch(pubspecUri);
+    final node = loadYaml(utf8.decode(bytes));
+    if (node is! YamlMap) {
+      throw DrxException(
+        'Failed to parse pubspec.yaml from $owner/$repo. '
+        'Use <package:executable> to specify the package explicitly.',
+      );
+    }
+
+    final name = node['name'];
+    if (name is! String || name.trim().isEmpty) {
+      throw DrxException(
+        'pubspec.yaml in $owner/$repo has no valid package name. '
+        'Use <package:executable> to specify the package explicitly.',
+      );
+    }
+    return name.trim();
+  }
+
+  Uri _sourcePubspecUri({
+    required String owner,
+    required String repo,
+    required String? ref,
+    required String? gitPath,
+  }) {
+    final refKey = ref ?? 'HEAD';
+    final normalizedPath = gitPath
+        ?.trim()
+        .replaceAll('\\', '/')
+        .replaceAll(RegExp(r'^/+'), '')
+        .replaceAll(RegExp(r'/+$'), '');
+    final pathPrefix = normalizedPath == null || normalizedPath.isEmpty
+        ? ''
+        : '$normalizedPath/';
+    return Uri.https(
+      'raw.githubusercontent.com',
+      '$owner/$repo/$refKey/${pathPrefix}pubspec.yaml',
+    );
+  }
+
+  Future<void> _writeSourcePubspec(
+    Directory sandbox, {
+    required String packageName,
+    required String owner,
+    required String repo,
+    required String? ref,
+    required String? gitPath,
+  }) async {
+    final pubspec = File(p.join(sandbox.path, 'pubspec.yaml'));
+    final normalizedPath = gitPath
+        ?.trim()
+        .replaceAll('\\', '/')
+        .replaceAll(RegExp(r'^/+'), '')
+        .replaceAll(RegExp(r'/+$'), '');
+
+    final content = StringBuffer()
+      ..writeln('name: drx_sandbox')
+      ..writeln('environment:')
+      ..writeln("  sdk: '>=3.0.0 <4.0.0'")
+      ..writeln('dependencies:')
+      ..writeln('  $packageName:')
+      ..writeln('    git:')
+      ..writeln('      url: https://github.com/$owner/$repo.git');
+    if (ref != null) {
+      content.writeln('      ref: $ref');
+    }
+    if (normalizedPath != null && normalizedPath.isNotEmpty) {
+      content.writeln('      path: $normalizedPath');
+    }
+
+    await pubspec.writeAsString(content.toString());
+  }
+
+  bool _shouldFallbackToSource(DrxException error) {
+    final message = error.message.toLowerCase();
+    if (message.contains('no runnable assets found')) {
+      return true;
+    }
+    if (message.contains('no compatible asset found')) {
+      return true;
+    }
+    if (message.contains('/releases/latest') && message.contains('(404)')) {
+      return true;
+    }
+    if (message.contains('/releases/tags/') && message.contains('(404)')) {
+      return true;
+    }
+    return false;
   }
 
   GitHubAsset _selectAsset(

@@ -455,6 +455,7 @@ Usage:
   drx <package:executable[@version]> [--] [args...]
   drx --from pub:<package[@version]> <command> [--] [args...]
   drx --from gh:<owner>/<repo[@tag]> <command> [--] [args...]
+      [--gh-mode binary|source|auto] [--git-path <path>]
   drx cache [list|clean|prune] [--json]
   drx cache prune [--max-age-days N] [--max-size-mb N] [--json]
   drx versions <package|pub:pkg|gh:owner/repo> [--limit N] [--json]
@@ -468,7 +469,9 @@ Options:
       --runtime <mode>   auto | jit | aot
       --refresh          Refresh cached artifacts.
       --isolated         Use isolated temporary environment.
-      --asset <name>     Asset override for gh source.
+      --gh-mode <mode>   binary | source | auto (gh source only)
+      --git-path <path>  Package path in GitHub monorepo (gh source mode).
+      --asset <name>     Asset override for gh binary mode.
       --allow-unsigned   Allow running unsigned gh assets.
       --json             JSON output (cache/versions commands).
   -v, --verbose          Verbose output.

@@ -22,6 +22,10 @@ drx --from gh:BurntSushi/ripgrep rg -- --version
 drx --from gh:junegunn/fzf fzf -- --version
 drx --from gh:charmbracelet/gum gum -- --version
 drx --allow-unsigned --from gh:sharkdp/fd fd -- --version
+
+# GitHub Dart source mode
+drx --gh-mode source --from gh:leehack/mcp_dart@mcp_dart_cli-v0.1.6 --git-path packages/mcp_dart_cli mcp_dart_cli:mcp_dart -- --help
+drx --gh-mode auto --from gh:leehack/mcp_dart@mcp_dart_cli-v0.1.6 --git-path packages/mcp_dart_cli mcp_dart -- --help
 ```
 
 Use runtime controls for pub tools:

@@ -68,6 +68,24 @@ This source is language-agnostic. Your executable can be built from any stack
 (for example Go, Rust, C/C++, Zig, or .NET native AOT) as long as release
 assets match platform/arch naming and include checksums.
 
+### Dart source fallback mode
+
+For Dart tools that do not publish release binaries, `drx` can run directly from
+GitHub source:
+
+```bash
+drx --gh-mode source --from gh:<owner>/<repo[@tag]> <executable-or-package:executable> -- [args...]
+```
+
+Use `--git-path <path>` when the Dart package is in a monorepo subdirectory.
+
+```bash
+drx --gh-mode source --from gh:leehack/mcp_dart@mcp_dart_cli-v0.1.6 --git-path packages/mcp_dart_cli mcp_dart_cli:mcp_dart -- --help
+```
+
+`--gh-mode auto` tries binary release assets first and falls back to source mode
+when no compatible binary is available.
+
 ### Requirements
 
 1. Publish binaries on GitHub Releases.

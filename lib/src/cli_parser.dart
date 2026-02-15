@@ -11,6 +11,8 @@ final class CliParser {
     RuntimeMode runtime = RuntimeMode.auto;
     var refresh = false;
     var isolated = false;
+    GhMode ghMode = GhMode.binary;
+    String? gitPath;
     String? asset;
     var allowUnsigned = false;
     var verbose = false;
@@ -57,6 +59,34 @@ final class CliParser {
       if (token == '--allow-unsigned') {
         allowUnsigned = true;
         i++;
+        continue;
+      }
+
+      if (token.startsWith('--gh-mode=')) {
+        ghMode = _parseGhMode(token.substring('--gh-mode='.length).trim());
+        i++;
+        continue;
+      }
+      if (token == '--gh-mode') {
+        if (i + 1 >= argv.length) {
+          throw const CliParseException('Missing value for --gh-mode.');
+        }
+        ghMode = _parseGhMode(argv[i + 1].trim());
+        i += 2;
+        continue;
+      }
+
+      if (token.startsWith('--git-path=')) {
+        gitPath = token.substring('--git-path='.length).trim();
+        i++;
+        continue;
+      }
+      if (token == '--git-path') {
+        if (i + 1 >= argv.length) {
+          throw const CliParseException('Missing value for --git-path.');
+        }
+        gitPath = argv[i + 1].trim();
+        i += 2;
         continue;
       }
 
@@ -149,6 +179,25 @@ final class CliParser {
     }
 
     final commandArgs = _extractCommandArgs(commandArgsInput);
+    final normalizedGitPath = gitPath?.trim();
+
+    if (source.type != SourceType.gh && ghMode != GhMode.binary) {
+      throw const CliParseException('--gh-mode is only valid for gh source.');
+    }
+    if (source.type != SourceType.gh && normalizedGitPath != null) {
+      throw const CliParseException('--git-path is only valid for gh source.');
+    }
+    if (source.type == SourceType.gh &&
+        ghMode == GhMode.binary &&
+        normalizedGitPath != null &&
+        normalizedGitPath.isNotEmpty) {
+      throw const CliParseException(
+        '--git-path requires --gh-mode source or --gh-mode auto.',
+      );
+    }
+    if (normalizedGitPath != null && normalizedGitPath.isEmpty) {
+      throw const CliParseException('--git-path cannot be empty.');
+    }
 
     final request = CommandRequest(
       source: source,
@@ -159,6 +208,8 @@ final class CliParser {
       isolated: isolated,
       allowUnsigned: allowUnsigned,
       verbose: verbose,
+      ghMode: ghMode,
+      gitPath: normalizedGitPath,
       asset: asset?.isEmpty == true ? null : asset,
     );
 
@@ -176,6 +227,21 @@ final class CliParser {
       default:
         throw CliParseException(
           'Invalid runtime "$value". Use auto, jit, or aot.',
+        );
+    }
+  }
+
+  GhMode _parseGhMode(String value) {
+    switch (value) {
+      case 'binary':
+        return GhMode.binary;
+      case 'source':
+        return GhMode.source;
+      case 'auto':
+        return GhMode.auto;
+      default:
+        throw CliParseException(
+          'Invalid gh mode "$value". Use binary, source, or auto.',
         );
     }
   }
