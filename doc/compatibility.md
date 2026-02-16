@@ -86,6 +86,9 @@ drx --gh-mode source --from gh:leehack/mcp_dart@mcp_dart_cli-v0.1.6 --git-path p
 `--gh-mode auto` (default for `gh:`) tries binary release assets first and
 falls back to source mode when no compatible binary is available.
 
+When running from source mode, `--runtime auto` tries AOT first and falls back
+to JIT. You can also force `--runtime aot` or `--runtime jit`.
+
 ### Requirements
 
 1. Publish binaries on GitHub Releases.

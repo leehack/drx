@@ -90,11 +90,14 @@ drx --json versions gh:cli/cli
 drx --json cache list
 ```
 
-## Runtime Modes (pub source)
+## Runtime Modes (Dart source execution)
 
-- `--runtime auto` (default): prefer AOT, fallback to JIT
+- `--runtime auto` (default): try AOT first, fallback to JIT
 - `--runtime jit`: `dart run`
 - `--runtime aot`: compile and run native executable
+
+These runtime modes apply to `pub:` and `gh:` when execution is from Dart source
+(`--gh-mode source`, or `--gh-mode auto` when it falls back to source mode).
 
 ## Security Defaults
 
@@ -105,7 +108,7 @@ drx --json cache list
 
 - `--gh-mode auto` (default for `gh:`): try precompiled release assets first, then fallback to source mode when no compatible binary is available.
 - `--gh-mode binary`: run precompiled release assets only.
-- `--gh-mode source`: run Dart CLI from GitHub source via sandboxed `dart pub get` + `dart run`.
+- `--gh-mode source`: run Dart CLI from GitHub source via sandboxed `dart pub get` and runtime selection (`jit`/`aot`/`auto`).
 - `--git-path <path>` selects a package path inside a monorepo for source mode.
 
 ## Platform Support

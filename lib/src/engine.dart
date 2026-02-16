@@ -466,7 +466,7 @@ Options:
   -h, --help             Show this help.
       --version          Show version.
       --from <source>    Source: pub:... or gh:...
-      --runtime <mode>   auto | jit | aot
+      --runtime <mode>   auto | jit | aot (for pub and gh source modes)
       --refresh          Refresh cached artifacts.
       --isolated         Use isolated temporary environment.
       --gh-mode <mode>   binary | source | auto (gh source only; default: auto)
