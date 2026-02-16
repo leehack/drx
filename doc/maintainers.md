@@ -22,6 +22,7 @@ dart run tool/check_coverage.dart 80 coverage/lcov.info
 
 - `/.github/workflows/ci.yml`
   - analyze + tests on Linux/macOS/Windows (`x64`, `arm64`) and coverage gate.
+  - includes GH mode/runtime integration matrix coverage (`test/gh_integration_test.dart`).
 - `/.github/workflows/installer-smoke.yml`
   - validates one-liner install scripts on Linux/macOS/Windows (`x64`, `arm64`).
 - `/.github/workflows/publish-pubdev.yml`
