@@ -11,7 +11,8 @@ final class CliParser {
     RuntimeMode runtime = RuntimeMode.auto;
     var refresh = false;
     var isolated = false;
-    GhMode ghMode = GhMode.binary;
+    GhMode ghMode = GhMode.auto;
+    var ghModeExplicit = false;
     String? gitPath;
     String? asset;
     var allowUnsigned = false;
@@ -64,6 +65,7 @@ final class CliParser {
 
       if (token.startsWith('--gh-mode=')) {
         ghMode = _parseGhMode(token.substring('--gh-mode='.length).trim());
+        ghModeExplicit = true;
         i++;
         continue;
       }
@@ -72,6 +74,7 @@ final class CliParser {
           throw const CliParseException('Missing value for --gh-mode.');
         }
         ghMode = _parseGhMode(argv[i + 1].trim());
+        ghModeExplicit = true;
         i += 2;
         continue;
       }
@@ -181,12 +184,17 @@ final class CliParser {
     final commandArgs = _extractCommandArgs(commandArgsInput);
     final normalizedGitPath = gitPath?.trim();
 
-    if (source.type != SourceType.gh && ghMode != GhMode.binary) {
+    if (source.type != SourceType.gh && ghModeExplicit) {
       throw const CliParseException('--gh-mode is only valid for gh source.');
     }
     if (source.type != SourceType.gh && normalizedGitPath != null) {
       throw const CliParseException('--git-path is only valid for gh source.');
     }
+
+    if (source.type != SourceType.gh) {
+      ghMode = GhMode.binary;
+    }
+
     if (source.type == SourceType.gh &&
         ghMode == GhMode.binary &&
         normalizedGitPath != null &&

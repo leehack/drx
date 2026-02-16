@@ -103,9 +103,9 @@ drx --json cache list
 
 ## GitHub Mode Behavior
 
-- `--gh-mode binary` (default): run precompiled release assets.
+- `--gh-mode auto` (default for `gh:`): try precompiled release assets first, then fallback to source mode when no compatible binary is available.
+- `--gh-mode binary`: run precompiled release assets only.
 - `--gh-mode source`: run Dart CLI from GitHub source via sandboxed `dart pub get` + `dart run`.
-- `--gh-mode auto`: prefer release assets, fallback to source if no compatible binary is available.
 - `--git-path <path>` selects a package path inside a monorepo for source mode.
 
 ## Platform Support

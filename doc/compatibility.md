@@ -83,8 +83,8 @@ Use `--git-path <path>` when the Dart package is in a monorepo subdirectory.
 drx --gh-mode source --from gh:leehack/mcp_dart@mcp_dart_cli-v0.1.6 --git-path packages/mcp_dart_cli mcp_dart_cli:mcp_dart -- --help
 ```
 
-`--gh-mode auto` tries binary release assets first and falls back to source mode
-when no compatible binary is available.
+`--gh-mode auto` (default for `gh:`) tries binary release assets first and
+falls back to source mode when no compatible binary is available.
 
 ### Requirements
 

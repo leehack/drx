@@ -55,6 +55,7 @@ void main() {
       expect(request.source.type, SourceType.gh);
       expect(request.source.identifier, 'cli/cli');
       expect(request.source.version, 'v2.70.0');
+      expect(request.ghMode, GhMode.auto);
       expect(request.command, 'gh');
       expect(request.args, ['version']);
     });
@@ -82,6 +83,7 @@ void main() {
       expect(request.source.type, SourceType.gh);
       expect(request.source.identifier, 'cli/cli');
       expect(request.source.version, 'v2.70.0');
+      expect(request.ghMode, GhMode.auto);
       expect(request.command, 'gh');
       expect(request.args, ['version']);
     });
@@ -128,6 +130,23 @@ void main() {
       expect(request.args, ['--help']);
     });
 
+    test('parses explicit gh binary mode', () {
+      final parsed = parser.parse([
+        '--from',
+        'gh:cli/cli@v2.70.0',
+        '--gh-mode',
+        'binary',
+        'gh',
+        'version',
+      ]);
+      final request = parsed.request!;
+
+      expect(request.source.type, SourceType.gh);
+      expect(request.ghMode, GhMode.binary);
+      expect(request.command, 'gh');
+      expect(request.args, ['version']);
+    });
+
     test('returns help and version without requiring command', () {
       final help = parser.parse(['--help']);
       final version = parser.parse(['--version']);
@@ -164,6 +183,8 @@ void main() {
         () => parser.parse([
           '--from',
           'gh:org/repo',
+          '--gh-mode',
+          'binary',
           '--git-path',
           'packages/tool',
           'tool',

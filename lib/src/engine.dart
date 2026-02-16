@@ -469,7 +469,7 @@ Options:
       --runtime <mode>   auto | jit | aot
       --refresh          Refresh cached artifacts.
       --isolated         Use isolated temporary environment.
-      --gh-mode <mode>   binary | source | auto (gh source only)
+      --gh-mode <mode>   binary | source | auto (gh source only; default: auto)
       --git-path <path>  Package path in GitHub monorepo (gh source mode).
       --asset <name>     Asset override for gh binary mode.
       --allow-unsigned   Allow running unsigned gh assets.
