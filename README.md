@@ -51,6 +51,7 @@ Explicit source selection:
 ```bash
 drx --from pub:<package[@version]> <command> [--] [args...]
 drx --from gh:<owner>/<repo[@tag]> <command> [--] [args...]
+# Optional for gh source: --gh-mode binary|source|auto --git-path <path>
 ```
 
 Examples:
@@ -64,6 +65,12 @@ drx --from gh:cli/cli@v2.70.0 gh -- version
 drx --from gh:BurntSushi/ripgrep rg -- --version
 drx --from gh:junegunn/fzf fzf -- --version
 drx --from gh:charmbracelet/gum gum -- --version
+
+# Run a Dart CLI directly from GitHub source:
+drx --gh-mode source --from gh:leehack/mcp_dart@mcp_dart_cli-v0.1.6 --git-path packages/mcp_dart_cli mcp_dart_cli:mcp_dart -- --help
+
+# Try release binary first, then fallback to source mode:
+drx --gh-mode auto --from gh:leehack/mcp_dart@mcp_dart_cli-v0.1.6 --git-path packages/mcp_dart_cli mcp_dart -- --help
 
 # Some repos do not publish checksums:
 drx --allow-unsigned --from gh:sharkdp/fd fd -- --version
@@ -83,16 +90,26 @@ drx --json versions gh:cli/cli
 drx --json cache list
 ```
 
-## Runtime Modes (pub source)
+## Runtime Modes (Dart source execution)
 
-- `--runtime auto` (default): prefer AOT, fallback to JIT
+- `--runtime auto` (default): try AOT first, fallback to JIT
 - `--runtime jit`: `dart run`
 - `--runtime aot`: compile and run native executable
+
+These runtime modes apply to `pub:` and `gh:` when execution is from Dart source
+(`--gh-mode source`, or `--gh-mode auto` when it falls back to source mode).
 
 ## Security Defaults
 
 - GitHub assets require checksum verification by default.
 - Unsigned assets are blocked unless you pass `--allow-unsigned`.
+
+## GitHub Mode Behavior
+
+- `--gh-mode auto` (default for `gh:`): try precompiled release assets first, then fallback to source mode when no compatible binary is available.
+- `--gh-mode binary`: run precompiled release assets only.
+- `--gh-mode source`: run Dart CLI from GitHub source via sandboxed `dart pub get` and runtime selection (`jit`/`aot`/`auto`).
+- `--git-path <path>` selects a package path inside a monorepo for source mode.
 
 ## Platform Support
 

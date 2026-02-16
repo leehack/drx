@@ -4,6 +4,9 @@ enum SourceType { pub, gh }
 /// Runtime strategy for pub executables.
 enum RuntimeMode { auto, jit, aot }
 
+/// Strategy for resolving `gh:` sources.
+enum GhMode { binary, source, auto }
+
 /// Parsed source selector and optional version/tag.
 final class SourceSpec {
   const SourceSpec({
@@ -28,6 +31,8 @@ final class CommandRequest {
     required this.isolated,
     required this.allowUnsigned,
     required this.verbose,
+    this.ghMode = GhMode.binary,
+    this.gitPath,
     this.asset,
   });
 
@@ -39,6 +44,8 @@ final class CommandRequest {
   final bool isolated;
   final bool allowUnsigned;
   final bool verbose;
+  final GhMode ghMode;
+  final String? gitPath;
   final String? asset;
 }
 

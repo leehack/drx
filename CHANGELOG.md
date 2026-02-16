@@ -1,3 +1,10 @@
+## Unreleased
+
+- Add `--gh-mode` (`binary|source|auto`) and `--git-path` to support running Dart CLIs directly from GitHub source.
+- Add source-mode execution for Dart GitHub repos via sandboxed git dependencies and `auto` fallback when release binaries are unavailable.
+- Default `gh:` execution to `--gh-mode auto` (binary first, source fallback).
+- Add AOT support for GitHub Dart source mode, with `--runtime auto` trying AOT first and falling back to JIT.
+
 ## 0.3.1
 
 - Add installer one-liner smoke tests across Linux/macOS/Windows on `x64` and `arm64`.

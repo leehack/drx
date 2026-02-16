@@ -41,5 +41,28 @@ void main() {
       expect(first, isNot(third));
       expect(first.length, 64);
     });
+
+    test('builds stable gh source cache path', () {
+      final paths = DrxPaths(Directory.systemTemp);
+      final platform = const HostPlatform(os: 'linux', arch: 'x64');
+
+      final first = paths.ghSourceDir(
+        'leehack',
+        'mcp_dart',
+        'mcp_dart_cli-v0.1.6',
+        'packages/mcp_dart_cli',
+        platform,
+      );
+      final second = paths.ghSourceDir(
+        'leehack',
+        'mcp_dart',
+        'mcp_dart_cli-v0.1.6',
+        'packages/mcp_dart_cli',
+        platform,
+      );
+
+      expect(first.path, second.path);
+      expect(first.path, contains('${p.separator}gh-source${p.separator}'));
+    });
   });
 }

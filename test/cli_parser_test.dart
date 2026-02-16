@@ -55,6 +55,7 @@ void main() {
       expect(request.source.type, SourceType.gh);
       expect(request.source.identifier, 'cli/cli');
       expect(request.source.version, 'v2.70.0');
+      expect(request.ghMode, GhMode.auto);
       expect(request.command, 'gh');
       expect(request.args, ['version']);
     });
@@ -82,6 +83,7 @@ void main() {
       expect(request.source.type, SourceType.gh);
       expect(request.source.identifier, 'cli/cli');
       expect(request.source.version, 'v2.70.0');
+      expect(request.ghMode, GhMode.auto);
       expect(request.command, 'gh');
       expect(request.args, ['version']);
     });
@@ -107,6 +109,44 @@ void main() {
       expect(request.asset, 'tool-linux-x64.tar.gz');
     });
 
+    test('parses gh source mode flags', () {
+      final parsed = parser.parse([
+        '--from',
+        'gh:leehack/mcp_dart@mcp_dart_cli-v0.1.6',
+        '--gh-mode',
+        'source',
+        '--git-path',
+        'packages/mcp_dart_cli',
+        'mcp_dart_cli:mcp_dart',
+        '--',
+        '--help',
+      ]);
+      final request = parsed.request!;
+
+      expect(request.source.type, SourceType.gh);
+      expect(request.ghMode, GhMode.source);
+      expect(request.gitPath, 'packages/mcp_dart_cli');
+      expect(request.command, 'mcp_dart_cli:mcp_dart');
+      expect(request.args, ['--help']);
+    });
+
+    test('parses explicit gh binary mode', () {
+      final parsed = parser.parse([
+        '--from',
+        'gh:cli/cli@v2.70.0',
+        '--gh-mode',
+        'binary',
+        'gh',
+        'version',
+      ]);
+      final request = parsed.request!;
+
+      expect(request.source.type, SourceType.gh);
+      expect(request.ghMode, GhMode.binary);
+      expect(request.command, 'gh');
+      expect(request.args, ['version']);
+    });
+
     test('returns help and version without requiring command', () {
       final help = parser.parse(['--help']);
       final version = parser.parse(['--version']);
@@ -127,6 +167,28 @@ void main() {
     test('throws on unsupported source', () {
       expect(
         () => parser.parse(['--from', 'url:https://example.com', 'foo']),
+        throwsA(isA<CliParseException>()),
+      );
+    });
+
+    test('throws when --gh-mode is used with pub source', () {
+      expect(
+        () => parser.parse(['--gh-mode', 'source', 'melos']),
+        throwsA(isA<CliParseException>()),
+      );
+    });
+
+    test('throws when --git-path is used with binary gh mode', () {
+      expect(
+        () => parser.parse([
+          '--from',
+          'gh:org/repo',
+          '--gh-mode',
+          'binary',
+          '--git-path',
+          'packages/tool',
+          'tool',
+        ]),
         throwsA(isA<CliParseException>()),
       );
     });

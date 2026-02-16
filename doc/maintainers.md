@@ -22,8 +22,11 @@ dart run tool/check_coverage.dart 80 coverage/lcov.info
 
 - `/.github/workflows/ci.yml`
   - analyze + tests on Linux/macOS/Windows (`x64`, `arm64`) and coverage gate.
+  - includes GH mode/runtime integration matrix coverage (`test/gh_integration_test.dart`).
 - `/.github/workflows/installer-smoke.yml`
   - validates one-liner install scripts on Linux/macOS/Windows (`x64`, `arm64`).
+- `/.github/workflows/live-gh-smoke.yml`
+  - manual live-network smoke tests against real GitHub repos.
 - `/.github/workflows/publish-pubdev.yml`
   - publishes to pub.dev when a tag like `vX.Y.Z` is pushed.
 - `/.github/workflows/release-binaries.yml`
@@ -74,3 +77,13 @@ without changing the package version.
 - Installer scripts support `DRX_DOWNLOAD_BASE` override for local/test payloads.
 - This is used by installer smoke workflow to test the one-liner flow end-to-end
   without depending on external GitHub release artifacts.
+
+## Live GitHub Smoke Tests
+
+- `test/gh_live_smoke_test.dart` is disabled by default and only runs when
+  `DRX_ENABLE_LIVE_GH_TESTS=1`.
+- Run locally:
+
+```bash
+DRX_ENABLE_LIVE_GH_TESTS=1 dart test test/gh_live_smoke_test.dart
+```

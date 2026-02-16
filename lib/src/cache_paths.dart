@@ -88,6 +88,26 @@ final class DrxPaths {
     return Directory(p.join(cacheDirectory.path, 'gh', key));
   }
 
+  /// Cache location for GitHub source-mode Dart installs.
+  Directory ghSourceDir(
+    String owner,
+    String repo,
+    String ref,
+    String gitPath,
+    HostPlatform platform,
+  ) {
+    final key = stableKey([
+      'gh-source',
+      owner,
+      repo,
+      ref,
+      gitPath,
+      platform.os,
+      platform.arch,
+    ]);
+    return Directory(p.join(cacheDirectory.path, 'gh-source', key));
+  }
+
   /// Lock file path derived from a deterministic key.
   File lockFileFor(String key) {
     final hash = stableKey([key]);
